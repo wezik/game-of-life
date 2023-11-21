@@ -1,6 +1,6 @@
-# vue-game-of-life
+# game-of-life
 
-This template should help get you started developing with Vue 3 in Vite.
+This project is just another implementation of Conway's game of life, this time in Vue using compositio API. [More under this link](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life)
 
 ## Recommended IDE Setup
 
