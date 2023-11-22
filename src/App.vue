@@ -6,22 +6,27 @@ class Board {
   constructor(width, height) {
     this.width = width;
     this.height = height;
-    this.cells = [];
+    this.cells = this.createEmptyCells();
+  }
+
+  createEmptyCells() {
+    const cells = [];
     for (let y = 0; y < this.height; y++) {
-      let line = [];
+      const row = [];
       for (let x = 0; x < this.width; x++) {
-        let cell = new Cell(y * this.width + x, x, y, false);
-        line.push(cell);
+        const cell = new Cell(y * this.width + x, x, y, false);
+        row.push(cell);
       }
-      this.cells.push(line);
+      cells.push(row);
     }
+    return cells;
   }
 }
 
 class Button {
-  constructor(message) {
+  constructor(label) {
     this.disabled = false;
-    this.message = message;
+    this.label = label;
   }
 }
 
@@ -40,69 +45,73 @@ class Cell {
 
 const widthInput = ref(new Button(20));
 const heightInput = ref(new Button(20));
-const state = ref(getInitialState());
+const state = ref(initialState());
 
 const msDelayInput = ref(new Button(200));
 
-const runButtonStartMessage = "START";
-const runButtonStopMessage = "STOP";
-const cycleButtonMessage = "CYCLE";
-const restartButtonMessage = "RESTART";
+const runButtonStartLabel = "START";
+const runButtonStopLabel = "STOP";
+const cycleButtonLabel = "CYCLE";
+const restartButtonLabel = "RESTART";
 
-const runButton = ref(new Button(runButtonStartMessage));
-const cycleButton = ref(new Button(cycleButtonMessage));
-const restartButton = ref(new Button(restartButtonMessage));
+const runButton = ref(new Button(runButtonStartLabel));
+const cycleButton = ref(new Button(cycleButtonLabel));
+const restartButton = ref(new Button(restartButtonLabel));
 
 const activeCells = new Map();
 
-function getInitialState() {
+function initialState() {
   return {
     isRunning: false,
-    board: new Board(widthInput.value.message, heightInput.value.message) 
-  }
+    board: new Board(widthInput.value.label, heightInput.value.label)
+  };
 }
 
 function restartState() {
   if (state.value.isRunning) {
     changeState();
   }
-  state.value.board = new Board(widthInput.value.message, heightInput.value.message);
+  state.value.board = new Board(widthInput.value.label, heightInput.value.label);
 }
 
 let interval = null;
 
 function changeState() {
   state.value.isRunning = !state.value.isRunning;
-  let currentState = state.value.isRunning;
-  interval = currentState ? setInterval(runCycle, msDelayInput.value.message) : clearInterval(interval);
+  const currentState = state.value.isRunning;
+  interval = currentState ? setInterval(runCycle, msDelayInput.value.label) : clearInterval(interval);
   
   widthInput.value.disabled = currentState;
   heightInput.value.disabled = currentState;
-  runButton.value.message = currentState ? runButtonStopMessage : runButtonStartMessage;
+  runButton.value.label = currentState ? runButtonStopLabel : runButtonStartLabel;
   msDelayInput.value.disabled = currentState;
   cycleButton.value.disabled = currentState;
 }
 
 function runCycle() {
-  let board = state.value.board;
-  let newBoard = new Board(board.width, board.height);
-  let activeCellsCopy = new Map(activeCells);
-  for (let cell of activeCells.values()) {
+  const board = state.value.board;
+  const newBoard = new Board(board.width, board.height);
+  const activeCellsCopy = new Map(activeCells);
+
+  for (const cell of activeCells.values()) {
     addNeighboursToActivePull(cell.x, cell.y, activeCellsCopy);
   }
+
   activeCells.clear();
-  for (let cell of activeCellsCopy.values()) {
+
+  for (const cell of activeCellsCopy.values()) {
     setAlive(newBoard.cells[cell.y][cell.x], calculateLife(cell.x, cell.y));
   }
+
   state.value.board = newBoard;
 }
 
 function calculateLife(x, y) {
-  let board = state.value.board;
-  let sum = countNeighbours(x, y);
+  const board = state.value.board;
+  const sum = countNeighbours(x, y);
 
-  let stayAliveCondition = sum == 2 && board.cells[y][x].isAlive;
-  let bornCondition = sum == 3;
+  const stayAliveCondition = sum === 2 && board.cells[y][x].isAlive;
+  const bornCondition = sum === 3;
 
   return stayAliveCondition || bornCondition;
 }
@@ -110,11 +119,11 @@ function calculateLife(x, y) {
 function addNeighboursToActivePull(x, y, activeCellsPull) {
   for (let yOffset = -1; yOffset < 2; yOffset++) {
     for (let xOffset = -1; xOffset < 2; xOffset++) {
-      if (xOffset != 0 || yOffset != 0) {
-        let resultX = x + xOffset;
-        let resultY = y + yOffset;
+      if (xOffset !== 0 || yOffset !== 0) {
+        const resultX = x + xOffset;
+        const resultY = y + yOffset;
         if (!isOutOfBounds(resultX, resultY)) {
-          let cell = state.value.board.cells[resultY][resultX];
+          const cell = state.value.board.cells[resultY][resultX];
           activeCellsPull.set(cell.id, cell.copy());
         }
       }
@@ -126,9 +135,9 @@ function countNeighbours(x, y) {
   let sum = 0;
   for (let yOffset = -1; yOffset < 2; yOffset++) {
     for (let xOffset = -1; xOffset < 2; xOffset++) {
-      if (xOffset != 0 || yOffset != 0) {
-        let resultX = x + xOffset;
-        let resultY = y + yOffset;
+      if (xOffset !== 0 || yOffset !== 0) {
+        const resultX = x + xOffset;
+        const resultY = y + yOffset;
         if (!isOutOfBounds(resultX, resultY)) {
           sum += checkCellIsAlive(resultX, resultY) ? 1 : 0;
         }
@@ -139,12 +148,12 @@ function countNeighbours(x, y) {
 }
 
 function isOutOfBounds(x, y) {
-  let board = state.value.board;
+  const board = state.value.board;
 
-  let yIsOutOfBounds = y < 0 || y >= board.cells.length;
+  const yIsOutOfBounds = y < 0 || y >= board.cells.length;
   if (yIsOutOfBounds) return true;
 
-  let xIsOutOfBounds = x < 0 || x >= board.cells[y].length;
+  const xIsOutOfBounds = x < 0 || x >= board.cells[y].length;
   if (xIsOutOfBounds) return true;
 
   return false;
@@ -156,19 +165,19 @@ function checkCellIsAlive(x, y) {
 
 function setAlive(cell, bool) {
   cell.isAlive = bool;
-  cell.isAlive ? activeCells.set(cell.id, cell.copy()) : activeCells.delete(cell.id);
+  bool ? activeCells.set(cell.id, cell.copy()) : activeCells.delete(cell.id);
 }
 
 </script>
 
 <template>
   <header>
-    <input class="number-input" type="text" :disabled="widthInput.disabled" v-model="widthInput.message">
-    <input class="number-input" type="text" :disabled="heightInput.disabled" v-model="heightInput.message">
-    <button class="btn" @click="restartState" :disabled="restartButton.disabled">{{ restartButton.message }}</button>
-    <button class="btn" @click="changeState" :disabled="runButton.disabled">{{ runButton.message }}</button>
-    <input class="number-input" type="text" :disabled="msDelayInput.disabled" v-model="msDelayInput.message">
-    <button class="btn" @click="runCycle" :disabled="cycleButton.disabled">{{ cycleButton.message }}</button>
+    <input class="number-input" type="text" :disabled="widthInput.disabled" v-model="widthInput.label">
+    <input class="number-input" type="text" :disabled="heightInput.disabled" v-model="heightInput.label">
+    <button class="btn" @click="restartState" :disabled="restartButton.disabled">{{ restartButton.label }}</button>
+    <button class="btn" @click="changeState" :disabled="runButton.disabled">{{ runButton.label }}</button>
+    <input class="number-input" type="text" :disabled="msDelayInput.disabled" v-model="msDelayInput.label">
+    <button class="btn" @click="runCycle" :disabled="cycleButton.disabled">{{ cycleButton.label }}</button>
   </header>
   <main>
     <div class="board">
