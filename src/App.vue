@@ -72,6 +72,7 @@ function restartState() {
     changeState();
   }
   state.value.board = new Board(widthInput.value.label, heightInput.value.label);
+  activeCells.clear();
 }
 
 let interval = null;
@@ -88,9 +89,11 @@ function changeState() {
   cycleButton.value.disabled = currentState;
 }
 
+let bufferBoard = null;
+
 function runCycle() {
-  const board = state.value.board;
-  const newBoard = new Board(board.width, board.height);
+  restartBufferBoard();
+
   const activeCellsCopy = new Map(activeCells);
 
   for (const cell of activeCells.values()) {
@@ -100,10 +103,22 @@ function runCycle() {
   activeCells.clear();
 
   for (const cell of activeCellsCopy.values()) {
-    setAlive(newBoard.cells[cell.y][cell.x], calculateLife(cell.x, cell.y));
+    setAlive(bufferBoard.cells[cell.y][cell.x], calculateLife(cell.x, cell.y));
   }
 
-  state.value.board = newBoard;
+  for (const cell of activeCellsCopy.values()) {
+    console.log(`Active cell: X${cell.x} Y${cell.y}`)
+    state.value.board.cells[cell.y][cell.x].isAlive = bufferBoard.cells[cell.y][cell.x].isAlive;
+  }
+}
+
+function restartBufferBoard() {
+  if (!bufferBoard) {
+    bufferBoard = new Board(state.value.board.width, state.value.board.height);
+  }
+  for (const cell of activeCells.values()) {
+    bufferBoard.cells[cell.y][cell.x].isAlive = false;
+  }
 }
 
 function calculateLife(x, y) {
