@@ -21,6 +21,7 @@ class Board {
     }
     return cells;
   }
+
 }
 
 class Button {
@@ -58,7 +59,7 @@ const runButton = ref(new Button(runButtonStartLabel));
 const cycleButton = ref(new Button(cycleButtonLabel));
 const restartButton = ref(new Button(restartButtonLabel));
 
-const activeCells = new Map();
+const activeCellsId = new Set();
 
 function initialState() {
   return {
@@ -72,7 +73,7 @@ function restartState() {
     changeState();
   }
   state.value.board = new Board(widthInput.value.label, heightInput.value.label);
-  activeCells.clear();
+  activeCellsId.clear();
 }
 
 let interval = null;
@@ -89,78 +90,91 @@ function changeState() {
   cycleButton.value.disabled = currentState;
 }
 
-let bufferBoard = null;
-
 function runCycle() {
-  restartBufferBoard();
+  // Calculate next gen active cells
+  const activeCellsNextGen = calculateLife(activeCellsId);
 
-  const activeCellsCopy = new Map(activeCells);
+  // Clear active cells id set
+  activeCellsId.clear();
 
-  for (const cell of activeCells.values()) {
-    addNeighboursToActivePull(cell.x, cell.y, activeCellsCopy);
+  // Write active cells to board and map new activeCellsIdSet
+  for (const cell of activeCellsNextGen) {
+    const displayedCell = state.value.board.cells[cell.y][cell.x];
+    setAlive(displayedCell, cell.isAlive);
   }
 
-  activeCells.clear();
+}
 
-  for (const cell of activeCellsCopy.values()) {
-    setAlive(bufferBoard.cells[cell.y][cell.x], calculateLife(cell.x, cell.y));
-  }
+function calculateLife(activeCellsId) {
+  //Create buffer, map id to cells and pull neighbours
+  const activeCellsNextGen = createNextGenSet(activeCellsId);
 
-  for (const cell of activeCellsCopy.values()) {
-    console.log(`Active cell: X${cell.x} Y${cell.y}`)
-    state.value.board.cells[cell.y][cell.x].isAlive = bufferBoard.cells[cell.y][cell.x].isAlive;
+  //Calculate all activeCells
+  calculateCells(activeCellsNextGen);
+  return activeCellsNextGen;
+}
+
+function calculateCells(activeCellsNextGen) {
+  for (const cell of activeCellsNextGen) {
+    const sum = getSumOfNeighbours(cell);
+    const stayAliveCondition = sum == 2 && cell.isAlive;
+    const bornCondition = sum == 3; 
+    cell.isAlive = stayAliveCondition || bornCondition;
   }
 }
 
-function restartBufferBoard() {
-  if (!bufferBoard) {
-    bufferBoard = new Board(state.value.board.width, state.value.board.height);
-  }
-  for (const cell of activeCells.values()) {
-    bufferBoard.cells[cell.y][cell.x].isAlive = false;
-  }
-}
-
-function calculateLife(x, y) {
-  const board = state.value.board;
-  const sum = countNeighbours(x, y);
-
-  const stayAliveCondition = sum === 2 && board.cells[y][x].isAlive;
-  const bornCondition = sum === 3;
-
-  return stayAliveCondition || bornCondition;
-}
-
-function addNeighboursToActivePull(x, y, activeCellsPull) {
-  for (let yOffset = -1; yOffset < 2; yOffset++) {
-    for (let xOffset = -1; xOffset < 2; xOffset++) {
-      if (xOffset !== 0 || yOffset !== 0) {
-        const resultX = x + xOffset;
-        const resultY = y + yOffset;
-        if (!isOutOfBounds(resultX, resultY)) {
-          const cell = state.value.board.cells[resultY][resultX];
-          activeCellsPull.set(cell.id, cell.copy());
-        }
-      }
-    }
-  }
-}
-
-function countNeighbours(x, y) {
+function getSumOfNeighbours(cell) {
   let sum = 0;
   for (let yOffset = -1; yOffset < 2; yOffset++) {
     for (let xOffset = -1; xOffset < 2; xOffset++) {
-      if (xOffset !== 0 || yOffset !== 0) {
-        const resultX = x + xOffset;
-        const resultY = y + yOffset;
-        if (!isOutOfBounds(resultX, resultY)) {
-          sum += checkCellIsAlive(resultX, resultY) ? 1 : 0;
+      const resultX = cell.x + xOffset;
+      const resultY = cell.y + yOffset;
+      if (!isOutOfBounds(resultX, resultY)) {
+        if (resultX != cell.x || resultY != cell.y) {
+          sum += state.value.board.cells[resultY][resultX].isAlive ? 1 : 0;
         }
       }
     }
   }
   return sum;
 }
+
+function createNextGenSet(activeCells) {
+  const resultSet = new Set();
+  for (const cellId of activeCells.values()) {
+    const cell = getCellById(cellId);
+    pullNeighbours(cell, resultSet);
+  }
+  return resultSet;
+}
+
+function pullNeighbours(cell, set) {
+  for (let yOffset = -1; yOffset < 2; yOffset++) {
+    for (let xOffset = -1; xOffset < 2; xOffset++) {
+      const resultX = cell.x + xOffset;
+      const resultY = cell.y + yOffset;
+      if (!isOutOfBounds(resultX, resultY)) {
+        const cell = state.value.board.cells[resultY][resultX].copy();
+        addCellToSet(cell, set);
+      }
+    }
+  }
+}
+
+function addCellToSet(cell, set) {
+  for (const obj of set) {
+    if (cell.id === obj.id) {
+      return;
+    }
+  }
+  set.add(cell);
+}
+
+function getCellById(id) {
+    const calculatedX = id % state.value.board.width;
+    const calculatedY = (id - calculatedX) / state.value.board.height;
+    return state.value.board.cells[calculatedY][calculatedX].copy();
+  }
 
 function isOutOfBounds(x, y) {
   const board = state.value.board;
@@ -174,13 +188,9 @@ function isOutOfBounds(x, y) {
   return false;
 }
 
-function checkCellIsAlive(x, y) {
-  return state.value.board.cells[y][x].isAlive;
-}
-
 function setAlive(cell, bool) {
   cell.isAlive = bool;
-  bool ? activeCells.set(cell.id, cell.copy()) : activeCells.delete(cell.id);
+  bool ? activeCellsId.add(cell.id) : activeCellsId.delete(cell.id);
 }
 
 </script>
@@ -198,6 +208,7 @@ function setAlive(cell, bool) {
     <div class="board">
       <div class="row" v-for="row in state.board.cells">
         <div class="cell" v-for="cell in row" @click="setAlive(cell,!cell.isAlive)" :class="{ 'cell--alive': cell.isAlive }">
+          {{ cell.id }}
         </div>
       </div>
     </div>
@@ -246,6 +257,7 @@ function setAlive(cell, bool) {
     transition: .15s;
     border-radius: 5px;
     border: 1px solid black;
+    color: black;
   }
 
   .cell--alive {
