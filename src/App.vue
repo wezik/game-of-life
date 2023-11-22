@@ -2,30 +2,34 @@
 
 import { ref } from 'vue';
 
-const height = 20;
-const width = 20;
-const msDelay = 200;
+class Button {
+  constructor(message) {
+    this.disabled = false;
+    this.message = message;
+  }
+}
 
+class Cell {
+  constructor(id, isAlive) {
+    this.id = id;
+    this.isAlive = isAlive;
+  }
+}
+
+const widthInput = ref(20);
+const heightInput = ref(20);
 const state = ref(getInitialState());
+
+const msDelayInput = ref(200);
 
 const runButtonStartMessage = "START";
 const runButtonStopMessage = "STOP";
-const runButton = ref({
-  disabled: false,
-  message: runButtonStartMessage
-});
-
 const cycleButtonMessage = "CYCLE";
-const cycleButton = ref({
-  disabled: false,
-  message: cycleButtonMessage
-});
-
 const restartButtonMessage = "RESTART";
-const restartButton = ref({
-  disabled: false,
-  message: restartButtonMessage
-});
+
+const runButton = ref(new Button(runButtonStartMessage));
+const cycleButton = ref(new Button(cycleButtonMessage));
+const restartButton = ref(new Button(restartButtonMessage));
 
 function getInitialState() {
   return {
@@ -36,22 +40,15 @@ function getInitialState() {
 
 function createEmptyBoard() {
   let board = [];
-  for (let y = 0; y < height; y++) {
+  for (let y = 0; y < heightInput.value; y++) {
     let row = [];
-    for (let x = 0; x < width; x++) {
-      let cell = createCell(y * width + x, false);
+    for (let x = 0; x < widthInput.value; x++) {
+      let cell = new Cell(y * widthInput.value + x, false);
       row.push(cell);
     }
     board.push(row);
   }
   return board;
-}
-
-function createCell(id, isAlive) {
-  return {
-    id: id,
-    isAlive: isAlive
-  };
 }
 
 function restartState() {
@@ -66,7 +63,7 @@ let interval = null;
 function changeState() {
   state.value.isRunning = !state.value.isRunning;
   let currentState = state.value.isRunning;
-  interval = currentState ? setInterval(runCycle, msDelay) : clearInterval(interval);
+  interval = currentState ? setInterval(runCycle, msDelayInput.value) : clearInterval(interval);
   
   runButton.value.message = currentState ? runButtonStopMessage : runButtonStartMessage;
   cycleButton.value.disabled = currentState;
@@ -78,7 +75,7 @@ function runCycle() {
   for (let y = 0; y < board.length; y++) {
     let newRow = [];
     for (let x = 0; x < board[y].length; x++) {
-      let cell = createCell(board[y][x].id, calculateLife(x, y));
+      let cell = new Cell(board[y][x].id, calculateLife(x, y));
       newRow[x] = cell;
     }
     newBoard.push(newRow);
@@ -124,8 +121,11 @@ function checkCellIsAlive(x, y) {
 
 <template>
   <header>
+    <input class="number-input" type="text" v-model="widthInput">
+    <input class="number-input" type="text" v-model="heightInput">
     <button class="btn" @click="restartState" :disabled="restartButton.disabled">{{ restartButton.message }}</button>
     <button class="btn" @click="changeState" :disabled="runButton.disabled">{{ runButton.message }}</button>
+    <input class="number-input" type="text" v-model="msDelayInput">
     <button class="btn" @click="runCycle" :disabled="cycleButton.disabled">{{ cycleButton.message }}</button>
   </header>
   <main>
@@ -155,6 +155,12 @@ function checkCellIsAlive(x, y) {
   .btn {
     height: 2em;
     font-weight: 600;
+  }
+
+  .number-input {
+    height: 2em;
+    font-weight: 600;
+    width: 5em;
   }
   
   .board {
