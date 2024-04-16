@@ -208,7 +208,6 @@ function setAlive(cell, bool) {
     <div class="board">
       <div class="row" v-for="row in state.board.cells">
         <div class="cell" v-for="cell in row" @click="setAlive(cell,!cell.isAlive)" :class="{ 'cell--alive': cell.isAlive }">
-          {{ cell.id }}
         </div>
       </div>
     </div>
