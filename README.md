@@ -1,6 +1,10 @@
 # game-of-life
 
-This project is just another implementation of Conway's game of life, this time in Vue using compositio API. [More under this link](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life)
+This project implements Conway's Game of Life using Vue and the composition API. [Learn more about Conway's Game of Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life).
+
+## Fun fact
+
+While the implementation in this code may not be optimal, especially in terms of DOM manipulation (kind of done on purpose), it efficiently manages performance by focusing only on active cells and their neighbors. By keeping track of changes in a set of active cells, the code minimizes the impact on rendering performance, making it fast even with thousands of rendered divs.
 
 ## Recommended IDE Setup
 
